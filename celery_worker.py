@@ -1,5 +1,5 @@
 import os
-from celery import Celery
+from celery import Celery,shared_task
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -13,3 +13,7 @@ celery_app.conf.update(task_track_started=True)
 @celery_app.task(name="celery_worker.test_scheduler")
 def test_scheduler(message):
     print(message)
+    
+@shared_task(name="celery_worker.test_scheduler")
+def test_scheduler(msg):
+    return f"Received: {msg}"

@@ -57,7 +57,7 @@ async def delete_refresh_token(refreshToken:str):
 
 
 
-def is_older_than_days(date_value, days=10):
+def is_older_than_days(date_value, days=1):
     """
     Accepts either an ISO-8601 string or a UNIX timestamp (int/float).
     Returns True if older than `days` days.

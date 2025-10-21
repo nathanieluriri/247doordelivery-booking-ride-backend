@@ -25,7 +25,7 @@ from security.auth import verify_token,verify_token_to_refresh,verify_admin_toke
 router = APIRouter(prefix="/admins", tags=["Admins"])
 
 @router.get(
-    "/{start}/{stop}", 
+    "/", 
     response_model=APIResponse[List[AdminOut]],
     response_model_exclude_none=True,
     response_model_exclude={"data": {"__all__": {"password"}}},
@@ -33,14 +33,8 @@ router = APIRouter(prefix="/admins", tags=["Admins"])
 )
 async def list_admins(
     # Use Path and Query for explicit documentation/validation of GET parameters
-    start: Annotated[
-        int,
-        Path(ge=0, description="The starting index (offset) for the list of admins.")
-    ] , 
-    stop: Annotated[
-        int, 
-        Path(gt=0, description="The ending index for the list of admins (limit).")
-    ] 
+    start:int=0, 
+    stop:int=100
 ):
     """
     **ADMIN ONLY:** Retrieves a paginated list of all registered admins.
@@ -60,7 +54,7 @@ async def list_admins(
     # items = await retrieve_admins(start=start, stop=stop)
     
     # Using the hardcoded values from your original code:
-    items = await retrieve_admins(start=0, stop=100)
+    items = await retrieve_admins(start=start, stop=stop)
     
     return APIResponse(status_code=200, data=items, detail="Fetched successfully")
 
@@ -72,7 +66,7 @@ async def list_admins(
     response_model_exclude_none=True,
     response_model_exclude={"data": {"password"}},
 )
-async def get_my_admin(
+async def get_admin_details(
     token: accessTokenOut = Depends(verify_admin_token),
         
 ):
