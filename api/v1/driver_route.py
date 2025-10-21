@@ -73,7 +73,7 @@ async def login_driver(user_data:DriverBase):
     items = await authenticate_driver(user_data=user_data)
     return APIResponse(status_code=200, data=items, detail="Fetched successfully")
 
-# TODO: IMPLEMENT GOOGLE LOGIN AUTH FOR DRIVER
+
 
 @router.post("/refesh",response_model_exclude={"data": {"password"}},response_model=APIResponse[DriverOut],dependencies=[Depends(verify_token_to_refresh)])
 async def refresh_driver_tokens(user_data:DriverRefresh,token:accessTokenOut = Depends(verify_token_to_refresh)):
