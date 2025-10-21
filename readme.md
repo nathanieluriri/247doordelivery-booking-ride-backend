@@ -1,9 +1,3 @@
-Here's a clean, professional, and informative `README.md` template tailored for your `fasterapi` scaffolding tool and FastAPI CRUD project setup.
-
----
-
-### ✅ `README.md` Template
-
 ````markdown
 # 🚀 FasterAPI Scaffold CLI
 
