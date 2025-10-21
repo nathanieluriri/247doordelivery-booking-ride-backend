@@ -18,7 +18,7 @@ from core.scheduler import scheduler
 from pymongo import MongoClient
 import redis
 from apscheduler.triggers.interval import IntervalTrigger
-
+from starlette.middleware.sessions import SessionMiddleware
 
 MONGO_URI = os.getenv("MONGO_URL")
 REDIS_URI = f"redis://{os.getenv('REDIS_HOST', '127.0.0.1')}:{os.getenv('REDIS_PORT', '6379')}/0"
@@ -81,9 +81,14 @@ app = FastAPI(
     
 )
 app.add_middleware(RequestTimingMiddleware)
+app.add_middleware(SessionMiddleware, secret_key="some-random-string")
+redis_url = os.getenv("CELERY_BROKER_URL") or os.getenv("REDIS_URL") \
+    or f"redis://{os.getenv('REDIS_HOST', 'redis')}:{os.getenv('REDIS_PORT', '6379')}/0"
+
+
 # Setup limiter
 storage = RedisStorage(
-    "redis://localhost:6379/0"
+    redis_url
 )
 
 limiter = FixedWindowRateLimiter(storage)
@@ -503,11 +508,13 @@ async def health_check():
 # --- auto-routes-start ---
 from api.v1.admin_route import router as v1_admin_route_router
 from api.v1.driver_route import router as v1_driver_route_router
+from api.v1.location import router as v1_location_router
 from api.v1.ride import router as v1_ride_router
 from api.v1.user_route import router as v1_user_route_router
 
 app.include_router(v1_admin_route_router, prefix='/v1')
 app.include_router(v1_driver_route_router, prefix='/v1')
+app.include_router(v1_location_router, prefix='/v1')
 app.include_router(v1_ride_router, prefix='/v1')
 app.include_router(v1_user_route_router, prefix='/v1')
 # --- auto-routes-end ---

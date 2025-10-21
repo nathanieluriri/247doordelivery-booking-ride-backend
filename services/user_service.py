@@ -15,6 +15,24 @@ from security.hash import check_password
 from security.encrypting_jwt import create_jwt_member_token
 from repositories.tokens_repo import add_refresh_tokens, add_access_tokens, accessTokenCreate,accessTokenOut,refreshTokenCreate
 from repositories.tokens_repo import get_refresh_tokens,get_access_tokens,delete_access_token,delete_refresh_token,delete_all_tokens_with_user_id
+from dotenv import load_dotenv
+from authlib.integrations.starlette_client import OAuth
+import os
+
+
+
+load_dotenv()
+
+ 
+oauth = OAuth()
+oauth.register(
+    name='google',
+    client_id=os.getenv("GOOGLE_CLIENT_ID"),
+    client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
+    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+    client_kwargs={'scope': 'openid email profile'},
+)
+ 
 
 async def add_user(user_data: UserCreate) -> UserOut:
     """adds an entry of UserCreate to the database and returns an object
