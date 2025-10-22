@@ -1,25 +1,10 @@
 from schemas.tokens_schema import refreshTokenOut,accessTokenOut,refreshTokenCreate,accessTokenCreate
-from security.encrypting_jwt import create_jwt_admin_token,create_jwt_member_token,decode_jwt_token,decode_jwt_token_without_expiration
+from security.encrypting_jwt import create_jwt_admin_token,decode_jwt_token,decode_jwt_token_without_expiration
 from bson import errors,ObjectId
 from fastapi import HTTPException,status
 from security.encrypting_jwt import decode_jwt_token
 
 
-
-
-async def generate_member_access_tokens(userId)->accessTokenOut:
-    from repositories.tokens_repo import add_user_access_token
-
-    
-    try:
-        obj_id = ObjectId(userId)
-    except errors.InvalidId:
-        raise   HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Invalid User Id")    
-
-    new_access_token = await add_user_access_token(token_data=accessTokenCreate(userId=userId))
-    new_access_token.accesstoken = await create_jwt_member_token(token=new_access_token.accesstoken)
-    
-    return new_access_token
 
 
 

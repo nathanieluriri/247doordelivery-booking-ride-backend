@@ -27,12 +27,16 @@ class DriverCreate(DriverBase):
         self.password=hash_password(self.password)
         return self
 class DriverUpdate(BaseModel):
-    # Add other fields here 
+    # Add other fields here
+    isActive: Optional[bool]=None
+    isProfileComplete:Optional[bool]=None
     last_updated: int = Field(default_factory=lambda: int(time.time()))
 
 class DriverOut(DriverBase):
     # Add other fields here 
     id: Optional[str] =None
+    isActive: Optional[bool]=Field(default=False)
+    isProfileComplete:Optional[bool]=Field(default=False)
     date_created: Optional[int] = None
     last_updated: Optional[int] = None
     refresh_token: Optional[str] =None

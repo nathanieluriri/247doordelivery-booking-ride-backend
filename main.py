@@ -6,6 +6,7 @@ from starlette.responses import Response
 from limits.strategies import FixedWindowRateLimiter
 from datetime import datetime,timedelta
 from limits.storage import RedisStorage
+from security.encrypting_jwt import decode_jwt_token
 import math
 from schemas.response_schema import APIResponse
 from repositories.tokens_repo import get_access_tokens_no_date_check
@@ -113,11 +114,17 @@ async def get_user_type(request: Request) -> tuple[str, str]:
     
     
     token = auth_header.split(" ")[1] 
-    access_token  =await get_access_tokens_no_date_check(accessToken=token)
+    try:
+        decoded_token =decode_jwt_token(token=token,allow_expired=False)
+        access_token  =await get_access_tokens_no_date_check(accessToken=decoded_token.access_token)
+        user_id = access_token.userId
     
-    user_id = access_token.userId
-    
-    user_type = access_token.role
+        user_type = access_token.role
+    except:
+        ip_address = request.headers.get("X-Forwarded-For", request.client.host)
+        user_id = ip_address
+        user_type="annonymous"
+        pass
 
  
     return user_id, user_type if user_type in RATE_LIMITS else "annonymous"

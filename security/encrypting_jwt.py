@@ -1,132 +1,96 @@
 import jwt
 import datetime
-from datetime import timezone
-from core.database import db
 from dotenv import load_dotenv
 import os
-import asyncio
-from bson import ObjectId
+from pydantic import BaseModel,ValidationError
+from datetime import datetime, timedelta
+from authlib.jose import jwt, JoseError
 
+
+# Secret key for signing (use env var in production)
+SECRET_KEY = "super-secure-secret-key"
+ALGORITHM = "HS256"
+
+# Token lifetime (in minutes)
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
 load_dotenv()
-SECRETID = os.getenv("SECRETID")
-SECRET_KEY = "your-secret-key"
-
-async def get_secret_dict()->dict:
-    result =await db.secret_keys.find_one({"_id":ObjectId(SECRETID)})
-    result.pop('_id')
-    return result
 
 
 
-async def get_secret_and_header():
+
+# ---------------------------
+# JWT Schema
+# ---------------------------
+class JWTPayload(BaseModel):
+    access_token: str
+    user_id: str
+    user_type: str
+    is_activated: bool
+    exp: datetime
+    iat: datetime
     
-    import random
+
+# ---------------------------
+# Create Token
+# ---------------------------
+def create_jwt_token(
+    access_token: str,
+    user_id: str,
+    user_type: str,
+    is_activated: bool,
+    role:str="member"
+) -> str:
+    """Generate a secure JWT token with a signed payload."""
+    header = {"alg": ALGORITHM}
     
-    secrets = await get_secret_dict()
-    
-    random_key = random.choice(list(secrets.keys()))
-    random_secret = secrets[random_key]
-    SECRET_KEYS={random_key:random_secret}
-    HEADERS = {"kid":random_key}
-    result = {
-        "SECRET_KEY":SECRET_KEYS,
-        "HEADERS":HEADERS
-    }
-    
-    return result
+    payload = JWTPayload(
+        access_token=access_token,
+        user_id=user_id,
+        user_type=user_type,
+        is_activated=is_activated,
+        exp=datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+        iat=datetime.utcnow(),
+    ).model_dump()
+    payload["role"]=role
+    token = jwt.encode(header, payload, SECRET_KEY)
+    return token.decode() if isinstance(token, bytes) else token
 
 
 
-async def create_jwt_member_token(token):
-    secrets = await get_secret_and_header()
-    SECRET_KEYS= secrets['SECRET_KEY']
-    headers= secrets['HEADERS']
-    
-    payload = {
-        'accessToken': token,
-        'role':'member',
-        'exp': datetime.datetime.now(timezone.utc) + datetime.timedelta(minutes=15)
-    }
-    
-    
-    token = jwt.encode(payload, SECRET_KEYS[headers['kid']], algorithm='HS256', headers=headers)
-
-    return token
 
 async def create_jwt_admin_token(token: str,userId:str):
-    payload = {
-        "accessToken": token,
-        "role": "admin",
-        "userId":userId,
-        "exp": datetime.datetime.now(timezone.utc) + datetime.timedelta(minutes=15)
-    }
-
-    encoded_jwt = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
-    return encoded_jwt
+    return create_jwt_token(access_token=token,user_id=userId,user_type="ADMIN",is_activated=True,role="admin")
+ 
 
 
 
-async def decode_jwt_token(token: str):
-    """
-    Decodes and verifies a JWT token.
-
-    Args:
-        token (str): Encoded JWT token.
-
-    Returns:
-        dict | None: Decoded payload if valid, or None if invalid/expired.
-
-    Example:
-        {'accessToken': '682c99f395ff4782fbea010f', 'role': 'admin', 'exp': 1747825460}
-    """
-
+# ---------------------------
+# Decode Token
+# ---------------------------
+def decode_jwt_token(token: str, allow_expired: bool = False) -> JWTPayload:
+    """Decode a JWT token and return a validated JWTPayload object."""
     try:
-        # Decode and verify
-        decoded = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-        return decoded
-
-    except jwt.ExpiredSignatureError:
-        print("Expired token")
-        return None
-
-    except jwt.InvalidSignatureError:
-        print("Invalid signature")
-        return None
-
-    except jwt.DecodeError:
-        print("Malformed token")
-        return None
-
-    except Exception as e:
-        print(f"Unexpected decode error: {e}")
-        return None
+        claims = jwt.decode(token, SECRET_KEY)
+        if not allow_expired:
+            claims.validate()  # checks expiration
+        return JWTPayload(**claims)
+    except JoseError as e:
+        raise ValueError(f"Invalid or tampered token: {str(e)}")
+    except ValidationError as e:
+        raise ValueError(f"Invalid token schema: {str(e)}")
+    
 
 async def decode_jwt_token_without_expiration(token: str):
-    try:
-        # Try decoding normally (with expiration check)
-        decoded = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+    """Decode a JWT token even if it has expired."""
+    return decode_jwt_token(token, allow_expired=True)
 
-        return decoded
-    
-    except jwt.ExpiredSignatureError:
-    
-        try:
-            # Decode again but skip exp validation
-            decoded = jwt.decode(
-                token, SECRET_KEY, algorithms=["HS256"], options={"verify_exp": False}
-            )
-            return decoded
-        except Exception as inner_e:
-            print(f"Failed to decode expired token: {inner_e}")
-            return None
 
-    except jwt.DecodeError:
-        print("Malformed token")
-        return None
 
-    except Exception as e:
-        print(f"Unexpected error decoding token: {e}")
-        return None
+
+
+
+
+
 
 
 

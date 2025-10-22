@@ -21,7 +21,7 @@ from services.admin_service import (
     refresh_admin_tokens_reduce_number_of_logins,
 
 )
-from security.auth import verify_token,verify_token_to_refresh,verify_admin_token
+from security.auth import verify_token_to_refresh,verify_admin_token
 router = APIRouter(prefix="/admins", tags=["Admins"])
 
 @router.get(
@@ -230,7 +230,7 @@ async def refresh_admin_tokens(
 
 @router.delete("/account", dependencies=[Depends(verify_admin_token)], response_model_exclude_none=True)
 async def delete_admin_account(
-    token: accessTokenOut = Depends(verify_token),
+    token: accessTokenOut = Depends(verify_admin_token),
     # Use Body to host the openapi_examples, even if the payload is empty
     # We use a simple dictionary here since there is no Pydantic model for the body
     _body: Annotated[

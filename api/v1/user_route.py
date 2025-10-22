@@ -22,7 +22,7 @@ from services.user_service import (
     oauth
 
 )
-from security.auth import verify_token,verify_token_to_refresh
+from security.auth import verify_token_to_refresh,verify_admin_token,verify_token_user_role
 
 
 
@@ -37,27 +37,40 @@ async def login(request: Request):
 
 
 # --- Step 2: Handle callback from Google ---
-@router.get("/auth/callback")
-async def auth_callback(request: Request):
-    token = await oauth.google.authorize_access_token(request)
-    user_info = token.get('userinfo')
-
+@router.get("/auth/callback",response_model_exclude={"data": {"password"}},response_model=APIResponse[UserOut])
+async def auth_callback(request: Request, ):
+    try:
+        token = await oauth.google.authorize_access_token(request)
+        user_info = token.get('userinfo')
+    except:
+        raise HTTPException(status_code=400,detail="Login session expired or was invalid. Please try logging in again.")
     # Just print or return user info for now
     if user_info:
-        print("✅ Google user info:", user_info)
-        return APIResponse(status_code=200,detail="Successful Login",data={"status": "success", "user": user_info})
+        new_data= UserCreate(email=user_info["email"],password="",)
+        old_data= UserBase(email=user_info["email"],password="",)
+        try:
+            user= await add_user(driver_data=new_data)
+        except:
+            
+           user= await authenticate_user(user_data=old_data)
+        user_info["email_verified"]
+        user_info["given_name"]
+        user_info["family_name"]
+        user_info["picture"]
+        
+        return APIResponse(status_code=200,detail="Successful Login",data=user)
     else:
         raise HTTPException(status_code=400,detail={"status": "failed", "message": "No user info found"})
 
 
 
-@router.get("/",name="root",response_model_exclude={"data": {"__all__": {"password"}}}, response_model=APIResponse[List[UserOut]],response_model_exclude_none=True,dependencies=[Depends(verify_token)])
+@router.get("/",name="root",response_model_exclude={"data": {"__all__": {"password"}}}, response_model=APIResponse[List[UserOut]],response_model_exclude_none=True,dependencies=[Depends(verify_admin_token)])
 async def list_users(start:int= 0, stop:int=100):
     items = await retrieve_users(start=start,stop=stop)
     return APIResponse(status_code=200, data=items, detail="Fetched successfully")
 
-@router.get("/me", response_model_exclude={"data": {"password"}},response_model=APIResponse[UserOut],dependencies=[Depends(verify_token)],response_model_exclude_none=True)
-async def get_my_user_details(token:accessTokenOut = Depends(verify_token)):
+@router.get("/me", response_model_exclude={"data": {"password"}},response_model=APIResponse[UserOut],dependencies=[Depends(verify_token_user_role)],response_model_exclude_none=True)
+async def get_my_user_details(token:accessTokenOut = Depends(verify_token_user_role)):
     items = await retrieve_user_by_user_id(id=token.userId)
     return APIResponse(status_code=200, data=items, detail="users items fetched")
 
@@ -85,7 +98,7 @@ async def refresh_user_tokens(user_data:UserRefresh,token:accessTokenOut = Depen
     return APIResponse(status_code=200, data=items, detail="users items fetched")
 
 
-@router.delete("/account",dependencies=[Depends(verify_token)])
-async def delete_user_account(token:accessTokenOut = Depends(verify_token)):
+@router.delete("/account",dependencies=[Depends(verify_token_user_role)])
+async def delete_user_account(token:accessTokenOut = Depends(verify_token_user_role)):
     result = await remove_user(user_id=token.userId)
     return result

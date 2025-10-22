@@ -19,12 +19,13 @@ from repositories.driver import (
 )
 from schemas.driver import DriverCreate, DriverUpdate, DriverOut,DriverBase,DriverRefresh
 from security.hash import check_password
-from security.encrypting_jwt import create_jwt_member_token
+
 from repositories.tokens_repo import add_refresh_tokens, add_access_tokens, accessTokenCreate,accessTokenOut,refreshTokenCreate
 from repositories.tokens_repo import get_refresh_tokens,get_access_tokens,delete_access_token,delete_refresh_token,delete_all_tokens_with_user_id
 from authlib.integrations.starlette_client import OAuth
 import os
 from dotenv import load_dotenv
+from security.encrypting_jwt import create_jwt_token,JWTPayload
 
 load_dotenv()
 
@@ -32,9 +33,9 @@ load_dotenv()
 
 oauth = OAuth()
 oauth.register(
-    name='google',
-    client_id=os.getenv("GOOGLE_CLIENT_ID"),
-    client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
+    name='google_driver',
+    client_id=os.getenv("GOOGLE_CLIENT_ID_FOR_DRIVER_ROLE"),
+    client_secret=os.getenv("GOOGLE_CLIENT_SECRET_FOR_DRIVER_ROLE"),
     server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
     client_kwargs={'scope': 'openid email profile'},
 )
@@ -50,9 +51,12 @@ async def add_driver(driver_data: DriverCreate) -> DriverOut:
     if user==None:
         new_user= await create_driver(driver_data)
         access_token = await add_access_tokens(token_data=accessTokenCreate(userId=new_user.id))
+        
+        token = create_jwt_token(access_token=access_token.accesstoken,user_id=new_user.id,user_type="DRIVER",is_activated=False)
+        
         refresh_token  = await add_refresh_tokens(token_data=refreshTokenCreate(userId=new_user.id,previousAccessToken=access_token.accesstoken))
-        new_user.password=""
-        new_user.access_token= access_token.accesstoken 
+        
+        new_user.access_token= token
         new_user.refresh_token = refresh_token.refreshtoken
         return new_user
     else:
@@ -64,10 +68,12 @@ async def authenticate_driver(user_data:DriverBase )->DriverOut:
 
     if user != None:
         if check_password(password=user_data.password,hashed=user.password ):
-            user.password=""
+          
             access_token = await add_access_tokens(token_data=accessTokenCreate(userId=user.id))
+            token_activation = (user.isActive) and (user.isProfileComplete)
+            token = create_jwt_token(access_token=access_token.accesstoken,user_id=user.id,user_type="DRIVER",is_activated=token_activation)
             refresh_token  = await add_refresh_tokens(token_data=refreshTokenCreate(userId=user.id,previousAccessToken=access_token.accesstoken))
-            user.access_token= access_token.accesstoken 
+            user.access_token= token
             user.refresh_token = refresh_token.refreshtoken
             return user
         else:
@@ -84,8 +90,10 @@ async def refresh_driver_tokens_reduce_number_of_logins(user_refresh_data:Driver
             
             if user!= None:
                     access_token = await add_access_tokens(token_data=accessTokenCreate(userId=user.id))
+                    token_activation = (user.isActive) and (user.isProfileComplete)
+                    token = create_jwt_token(access_token=access_token.accesstoken,user_id=user.id,user_type="DRIVER",is_activated=token_activation)
                     refresh_token  = await add_refresh_tokens(token_data=refreshTokenCreate(userId=user.id,previousAccessToken=access_token.accesstoken))
-                    user.access_token= access_token.accesstoken 
+                    user.access_token= token
                     user.refresh_token = refresh_token.refreshtoken
                     await delete_access_token(accessToken=expired_access_token)
                     await delete_refresh_token(refreshToken=user_refresh_data.refresh_token)

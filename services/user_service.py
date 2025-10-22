@@ -12,12 +12,14 @@ from repositories.user_repo import (
 )
 from schemas.user_schema import UserCreate, UserUpdate, UserOut,UserBase,UserRefresh
 from security.hash import check_password
-from security.encrypting_jwt import create_jwt_member_token
+
 from repositories.tokens_repo import add_refresh_tokens, add_access_tokens, accessTokenCreate,accessTokenOut,refreshTokenCreate
 from repositories.tokens_repo import get_refresh_tokens,get_access_tokens,delete_access_token,delete_refresh_token,delete_all_tokens_with_user_id
 from dotenv import load_dotenv
 from authlib.integrations.starlette_client import OAuth
 import os
+from security.encrypting_jwt import create_jwt_token,JWTPayload
+
 
  
 
@@ -44,9 +46,11 @@ async def add_user(user_data: UserCreate) -> UserOut:
     if user==None:
         new_user= await create_user(user_data)
         access_token = await add_access_tokens(token_data=accessTokenCreate(userId=new_user.id))
+        
         refresh_token  = await add_refresh_tokens(token_data=refreshTokenCreate(userId=new_user.id,previousAccessToken=access_token.accesstoken))
-        new_user.password=""
-        new_user.access_token= access_token.accesstoken 
+        
+        token = create_jwt_token(access_token=access_token.accesstoken,user_id=new_user.id,user_type="USER",is_activated=True)
+        new_user.access_token= token
         new_user.refresh_token = refresh_token.refreshtoken
         return new_user
     else:
@@ -59,8 +63,9 @@ async def authenticate_user(user_data:UserBase )->UserOut:
         if check_password(password=user_data.password,hashed=user.password ):
             user.password=""
             access_token = await add_access_tokens(token_data=accessTokenCreate(userId=user.id))
+            token = create_jwt_token(access_token=access_token.accesstoken,user_id=user.id,user_type="USER",is_activated=True)
             refresh_token  = await add_refresh_tokens(token_data=refreshTokenCreate(userId=user.id,previousAccessToken=access_token.accesstoken))
-            user.access_token= access_token.accesstoken 
+            user.access_token= token
             user.refresh_token = refresh_token.refreshtoken
             return user
         else:
@@ -76,8 +81,9 @@ async def refresh_user_tokens_reduce_number_of_logins(user_refresh_data:UserRefr
             
             if user!= None:
                     access_token = await add_access_tokens(token_data=accessTokenCreate(userId=user.id))
+                    token = create_jwt_token(access_token=access_token.accesstoken,user_id=user.id,user_type="USER",is_activated=True)
                     refresh_token  = await add_refresh_tokens(token_data=refreshTokenCreate(userId=user.id,previousAccessToken=access_token.accesstoken))
-                    user.access_token= access_token.accesstoken 
+                    user.access_token= token 
                     user.refresh_token = refresh_token.refreshtoken
                     await delete_access_token(accessToken=expired_access_token)
                     await delete_refresh_token(refreshToken=user_refresh_data.refresh_token)
