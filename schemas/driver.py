@@ -11,13 +11,15 @@ from schemas.imports import *
 from pydantic import Field
 import time
 from security.hash import hash_password
-
+from security.utils import normalize_email
 class DriverBase(BaseModel):
     # Add other fields here 
     email:EmailStr
     password:str | bytes
-    pass
-
+    @model_validator(mode="after")
+    def normalize(self):
+        self.email = normalize_email(email=self.email)
+        return self
 class DriverCreate(DriverBase):
     # Add other fields here 
     date_created: int = Field(default_factory=lambda: int(time.time()))

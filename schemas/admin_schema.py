@@ -4,13 +4,16 @@ import time
 from security.hash import hash_password
 from typing import List, Optional
 from pydantic import BaseModel, EmailStr, model_validator
-
+from security.utils import normalize_email
 class AdminBase(BaseModel):
 
     full_name: str
     email: EmailStr
     password: str | bytes
-
+    @model_validator(mode="after")
+    def normalize(self):
+        self.email = normalize_email(email=self.email)
+        return self
 
 class AdminLogin(BaseModel):
     # Add other fields here 
