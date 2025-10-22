@@ -106,7 +106,8 @@ async def signup_new_admin(
     ],
     token: accessTokenOut = Depends(verify_admin_token),
 ):
- 
+    if len(admin_data.password)<8:
+        raise HTTPException(status_code=401,detail="Password too short")
     admin_data_dict = admin_data.model_dump() 
     new_admin = AdminCreate(
       invited_by=token.get("userId"),
@@ -154,6 +155,8 @@ async def login_admin(
     
     Upon success, returns the authenticated admin data and an authentication token.
     """
+    if len(admin_data.password)<8:
+        raise HTTPException(status_code=401,detail="Password too short")
     items = await authenticate_admin(admin_data=admin_data)
     # The `authenticate_admin` function should raise an HTTPException 
     # (e.g., 401 Unauthorized) on failure.

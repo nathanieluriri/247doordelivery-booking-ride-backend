@@ -77,6 +77,8 @@ async def get_driver_details(token:accessTokenOut = Depends(verify_any_token),dr
 
 @router.post("/signup", response_model_exclude={"data": {"password"}},response_model=APIResponse[DriverOut])
 async def signup_new_driver(user_data:DriverBase):
+    if len(user_data.password)<8:
+        raise HTTPException(status_code=401,detail="Password too short")
     new_user = DriverCreate(**user_data.model_dump())
     items = await add_driver(driver_data=new_user)
     return APIResponse(status_code=200, data=items, detail="Fetched successfully")
@@ -84,6 +86,8 @@ async def signup_new_driver(user_data:DriverBase):
 
 @router.post("/login",response_model_exclude={"data": {"password"}}, response_model=APIResponse[DriverOut])
 async def login_driver(user_data:DriverBase):
+    if len(user_data.password)<8:
+        raise HTTPException(status_code=401,detail="Password too short")
     items = await authenticate_driver(user_data=user_data)
     return APIResponse(status_code=200, data=items, detail="Fetched successfully")
 

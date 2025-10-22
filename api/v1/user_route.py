@@ -79,6 +79,8 @@ async def get_my_user_details(token:accessTokenOut = Depends(verify_token_user_r
 
 @router.post("/signup", response_model_exclude={"data": {"password"}},response_model=APIResponse[UserOut])
 async def signup_new_user(user_data:UserBase):
+    if len(user_data.password)<8:
+        raise HTTPException(status_code=401,detail="Password too short")
     new_user = UserCreate(**user_data.model_dump())
     items = await add_user(user_data=new_user)
     return APIResponse(status_code=200, data=items, detail="Fetched successfully")
@@ -86,6 +88,8 @@ async def signup_new_user(user_data:UserBase):
 
 @router.post("/login",response_model_exclude={"data": {"password"}}, response_model=APIResponse[UserOut])
 async def login_user(user_data:UserBase):
+    if len(user_data.password)<8:
+        raise HTTPException(status_code=401,detail="Password too short")
     items = await authenticate_user(user_data=user_data)
     return APIResponse(status_code=200, data=items, detail="Fetched successfully")
 
