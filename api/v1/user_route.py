@@ -53,10 +53,10 @@ async def auth_callback(request: Request, ):
         except:
             
            user= await authenticate_user(user_data=old_data)
-        user_info["email_verified"]
-        user_info["given_name"]
-        user_info["family_name"]
-        user_info["picture"]
+        # user_info.get("email_verified",False)
+        # user_info.get("given_name",None)
+        # user_info.get("family_name",None)
+        # user_info.get("picture",None)
         
         return APIResponse(status_code=200,detail="Successful Login",data=user)
     else:
