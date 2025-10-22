@@ -20,7 +20,7 @@ jobs:
           key: ${{ secrets.DROPLET_KEY }}          # your private SSH key stored in GitHub Secrets
           port: 22
           script: |
-            cd /root/eba-job-platform
+            cd /root/247doordelivery-booking-ride-backend 
             git pull origin master
             chmod +x deploy.sh
             ./deploy.sh
