@@ -49,7 +49,7 @@ async def auth_callback(request: Request, ):
         new_data= UserCreate(email=user_info["email"],password="",)
         old_data= UserBase(email=user_info["email"],password="",)
         try:
-            user= await add_user(driver_data=new_data)
+            user= await add_user(user_data=new_data)
         except:
             
            user= await authenticate_user(user_data=old_data)

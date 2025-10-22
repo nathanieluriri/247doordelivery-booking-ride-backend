@@ -58,7 +58,8 @@ async def add_user(user_data: UserCreate) -> UserOut:
 
 async def authenticate_user(user_data:UserBase )->UserOut:
     user = await get_user(filter_dict={"email":user_data.email})
-
+    print(user_data.email)
+    print(user)
     if user != None:
         if check_password(password=user_data.password,hashed=user.password ):
             user.password=""
