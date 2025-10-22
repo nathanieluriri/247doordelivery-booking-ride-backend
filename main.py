@@ -76,10 +76,17 @@ class RequestTimingMiddleware(BaseHTTPMiddleware):
     
 # Create the FastAPI app
 app = FastAPI(
-    
-    lifespan= lifespan,
-    title="REST API",
-    
+    lifespan=lifespan,
+    title="247 Door Delivery REST API",
+    summary=(
+        "Backend REST API for 247 Door Delivery, handling core logistics operations "
+        "such as job creation, route updates, and driver coordination."
+    ),
+    description=(
+        "A RESTful API powering 247 Door Delivery’s logistics platform. "
+        "It manages orders, drivers, tracking, and real-time delivery operations, "
+        "providing reliable services for order management, delivery tracking, and dispatch automation."
+    ),
 )
 app.add_middleware(RequestTimingMiddleware)
 app.add_middleware(SessionMiddleware, secret_key="some-random-string")
