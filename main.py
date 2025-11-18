@@ -13,6 +13,7 @@ from repositories.tokens_repo import get_access_tokens_no_date_check
 from limits import parse
 import time   
 import os
+from sub_app.main import app as Node1
 from celery_worker import celery_app
 from contextlib import asynccontextmanager
 from core.scheduler import scheduler
@@ -87,6 +88,7 @@ app = FastAPI(
         "It manages orders, drivers, tracking, and real-time delivery operations, "
         "providing reliable services for order management, delivery tracking, and dispatch automation."
     ),
+    root_path="/api/v1",
 )
 app.add_middleware(RequestTimingMiddleware)
 app.add_middleware(SessionMiddleware, secret_key="some-random-string")
@@ -518,6 +520,8 @@ async def health_check():
         detail=f"Health check completed with status: {overall_status}",
         data=data  
     )
+    
+app.mount("/node", Node1)
 
 # --- auto-routes-start ---
 from api.v1.admin_route import router as v1_admin_route_router
@@ -526,9 +530,9 @@ from api.v1.location import router as v1_location_router
 from api.v1.ride import router as v1_ride_router
 from api.v1.user_route import router as v1_user_route_router
 
-app.include_router(v1_admin_route_router, prefix='/v1')
-app.include_router(v1_driver_route_router, prefix='/v1')
-app.include_router(v1_location_router, prefix='/v1')
-app.include_router(v1_ride_router, prefix='/v1')
-app.include_router(v1_user_route_router, prefix='/v1')
+app.include_router(v1_admin_route_router, )
+app.include_router(v1_driver_route_router,)
+app.include_router(v1_location_router, )
+app.include_router(v1_ride_router, )
+app.include_router(v1_user_route_router, )
 # --- auto-routes-end ---

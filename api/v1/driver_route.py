@@ -69,12 +69,19 @@ async def list_drivers(start:int= 0, stop:int=100):
 @router.get("/me", response_model_exclude={"data": {"password"}},response_model=APIResponse[DriverOut],dependencies=[Depends(verify_any_token)],response_model_exclude_none=True)
 async def get_driver_details(token:accessTokenOut = Depends(verify_any_token),driver_id:int=None):
     if driver_id==None:
-        items = await retrieve_driver_by_driver_id(id=token.userId)
-        return APIResponse(status_code=200, data=items, detail="users items fetched")
-    else: 
-        items = await retrieve_driver_by_driver_id(id=driver_id)
-        return APIResponse(status_code=200, data=items, detail="users items fetched")
-
+        try:
+            items = await retrieve_driver_by_driver_id(id=token.userId)
+            return APIResponse(status_code=200, data=items, detail="users items fetched")
+        except Exception as e:
+            if str(e) == "'JWTPayload' object has no attribute 'userId'":
+                raise HTTPException(status_code=401,detail=f"Invalid Token Use Driver Id if you want to access driver details with these tokens")
+            raise HTTPException(status_code=500,detail=f"{e}")
+    else:
+        try: 
+            items = await retrieve_driver_by_driver_id(id=driver_id)
+            return APIResponse(status_code=200, data=items, detail="users items fetched")
+        except Exception as e:
+            raise HTTPException(status_code=500,detail=f"{e}")
 @router.post("/signup", response_model_exclude={"data": {"password"}},response_model=APIResponse[DriverOut])
 async def signup_new_driver(user_data:DriverBase):
     if len(user_data.password)<8:
